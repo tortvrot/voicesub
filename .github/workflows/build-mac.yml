@@ -26,13 +26,33 @@ jobs:
       - name: Build SetupLanguages
         run: pyinstaller --noconfirm --onefile --console --name SetupLanguages setup_languages.py
 
-      - name: Упаковать в zip (сохраняет права доступа .app)
+      - name: Простой вариант - zip с двумя файлами (без автоустановки BlackHole)
         run: |
           cd dist
-          zip -r VoiceSub_mac.zip VoiceSub.app SetupLanguages
+          zip -r VoiceSub_plain.zip VoiceSub.app SetupLanguages
+          cd ..
+
+      - name: Скачать официальный установщик BlackHole
+        run: |
+          URL=$(curl -s https://api.github.com/repos/ExistentialAudio/BlackHole/releases/latest | grep "browser_download_url.*\.pkg" | head -n1 | cut -d '"' -f4)
+          echo "Скачиваю: $URL"
+          curl -L "$URL" -o mac_installer/BlackHole2ch.pkg
+
+      - name: Собрать единый .pkg установщик с автоустановкой BlackHole
+        run: |
+          chmod +x mac_installer/postinstall.sh
+          rm -rf pkgroot
+          mkdir -p pkgroot/Applications
+          cp -r dist/VoiceSub.app pkgroot/Applications/
+          pkgbuild --root pkgroot --scripts mac_installer --identifier com.voicesub.app --version 2.0 --install-location / dist/VoiceSubComponent.pkg
+          productbuild --package dist/VoiceSubComponent.pkg dist/VoiceSubInstaller.pkg
 
       - uses: actions/upload-artifact@v4
         with:
-          name: VoiceSub-macOS
-          path: dist/VoiceSub_mac.zip
+          name: VoiceSub-macOS-installer-pkg
+          path: dist/VoiceSubInstaller.pkg
 
+      - uses: actions/upload-artifact@v4
+        with:
+          name: VoiceSub-macOS-plain-zip
+          path: dist/VoiceSub_plain.zip
