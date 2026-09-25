@@ -1,0 +1,5 @@
+numpy
+faster-whisper
+argostranslate
+sounddevice
+pyinstaller
