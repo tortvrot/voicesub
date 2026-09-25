@@ -1,58 +1,46 @@
 name: Build macOS App
-
 on:
-  workflow_dispatch:
-  push:
-    branches: [ main ]
-
+  workflow_dispatch:
+  push:
+    branches: [ main ]
 jobs:
-  build:
-    runs-on: macos-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-
-      - name: Install dependencies
-        run: |
-          python3 -m pip install --upgrade pip
-          pip install -r requirements-mac.txt
-
-      - name: Build VoiceSub.app
-        run: pyinstaller --noconfirm --onefile --windowed --name VoiceSub main.py
-
-      - name: Build SetupLanguages
-        run: pyinstaller --noconfirm --onefile --console --name SetupLanguages setup_languages.py
-
-      - name: Простой вариант - zip с двумя файлами (без автоустановки BlackHole)
-        run: |
-          cd dist
-          zip -r VoiceSub_plain.zip VoiceSub.app SetupLanguages
-          cd ..
-
-      - name: Скачать официальный установщик BlackHole
-        run: |
-          URL=$(curl -s https://api.github.com/repos/ExistentialAudio/BlackHole/releases/latest | grep "browser_download_url.*\.pkg" | head -n1 | cut -d '"' -f4)
-          echo "Скачиваю: $URL"
-          curl -L "$URL" -o mac_installer/BlackHole2ch.pkg
-
-      - name: Собрать единый .pkg установщик с автоустановкой BlackHole
-        run: |
-          chmod +x mac_installer/postinstall.sh
-          rm -rf pkgroot
-          mkdir -p pkgroot/Applications
-          cp -r dist/VoiceSub.app pkgroot/Applications/
-          pkgbuild --root pkgroot --scripts mac_installer --identifier com.voicesub.app --version 2.0 --install-location / dist/VoiceSubComponent.pkg
-          productbuild --package dist/VoiceSubComponent.pkg dist/VoiceSubInstaller.pkg
-
-      - uses: actions/upload-artifact@v4
-        with:
-          name: VoiceSub-macOS-installer-pkg
-          path: dist/VoiceSubInstaller.pkg
-
-      - uses: actions/upload-artifact@v4
-        with:
-          name: VoiceSub-macOS-plain-zip
-          path: dist/VoiceSub_plain.zip
+  build:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install dependencies
+        run: |
+          python3 -m pip install --upgrade pip
+          pip install -r requirements-mac.txt
+      - name: Build VoiceSub.app
+        run: pyinstaller --noconfirm --onefile --windowed --name VoiceSub main.py
+      - name: Build SetupLanguages
+        run: pyinstaller --noconfirm --onefile --console --name SetupLanguages setup_languages.py
+      - name: Простой вариант - zip с двумя файлами (без автоустановки BlackHole)
+        run: |
+          cd dist
+          zip -r VoiceSub_plain.zip VoiceSub.app SetupLanguages
+          cd ..
+      - name: Скачать официальный установщик BlackHole
+        run: |
+          curl -L "https://existential.audio/downloads/BlackHole2ch-0.7.1.pkg" -o mac_installer/BlackHole2ch.pkg
+          ls -la mac_installer/BlackHole2ch.pkg
+      - name: Собрать единый .pkg установщик с автоустановкой BlackHole
+        run: |
+          chmod +x mac_installer/postinstall.sh
+          rm -rf pkgroot
+          mkdir -p pkgroot/Applications
+          cp -r dist/VoiceSub.app pkgroot/Applications/
+          pkgbuild --root pkgroot --scripts mac_installer --identifier com.voicesub.app --version 2.0 --install-location / dist/VoiceSubComponent.pkg
+          productbuild --package dist/VoiceSubComponent.pkg dist/VoiceSubInstaller.pkg
+      - uses: actions/upload-artifact@v4
+        with:
+          name: VoiceSub-macOS-installer-pkg
+          path: dist/VoiceSubInstaller.pkg
+      - uses: actions/upload-artifact@v4
+        with:
+          name: VoiceSub-macOS-plain-zip
+          path: dist/VoiceSub_plain.zip
